@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kei Wordle</title>
+ 
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121213;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 40px;
+    }
+ 
+    h1 {
+      margin-bottom: 20px;
+    }
+ 
+    .board {
+      display: grid;
+      grid-template-rows: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+ 
+    .row {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      gap: 5px;
+    }
+ 
+    .tile {
+      width: 60px;
+      height: 60px;
+      border: 2px solid #3a3a3c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      text-transform: uppercase;
+      background: #121213;
+    }
+ 
+    .filled {
+      background: #538d4e;
+      border-color: #538d4e;
+    }
+ 
+    .correct {
+      background: #538d4e; /* Wordle green */
+      border-color: #538d4e;
+    }
+ 
+    .present {
+      background: #b59f3b; /* Wordle yellow */
+      border-color: #b59f3b;
+    }
+ 
+    .absent {
+      background: #3a3a3c; /* Wordle gray */
+      border-color: #3a3a3c;
+    }
+ 
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #538d4e;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+ 
+    /* Styling for the message box (directly under the board) */
+    .message {
+      margin-top: 20px;
+      font-size: 22px;
+      text-align: center;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+ 
+    .message img {
+      margin-top: 10px;
+      width: 315px;  /* 30% smaller than 450px */
+      height: auto;
+      border-radius: 8px;
+    }
+ 
+    /* Reduce size of the last gif by 30% */
+    .last-gif {
+      width: 189px;  /* 30% smaller than 270px */
+    }
+ 
+    .message p {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #fff;
+    }
+  </style>
+</head>
+ 
+<body>
+ 
+  <h1>WORDLE</h1>
+ 
+  <div class="board" id="board"></div>
+ 
+  <div class="message" id="message"></div>
+ 
+  <script>
+    // Words for each row (the correct guesses)
+    const words = [
+      "CINTA",  // Row 1 guess
+      "CINTA",  // Row 2 guess
+      "CINTA",  // Row 3 guess
+      "CINTA",  // Row 4 guess
+      "CINTA"    // Row 5 guess
+    ];
+ 
+    // Messages with GIFs that appear after each guess
+    const messages = [
+      "<img src='https://media.giphy.com/media/kudIERso2pFiE/giphy.gif' alt='heart'><p>WFH Kei</p>",
+      "<img src='https://media.giphy.com/media/m2SlpxfryqLgQ/giphy.gif' alt='heartbeats'><p>When I tell you no</p>",
+      "<img src='https://media.giphy.com/media/NBsb2nSjwK33a/giphy.gif' alt='present'><p>'Lets go to the gym'</p><p> You:</p>",
+      "<img src='https://media.giphy.com/media/g0qNCh6v2oGjqUm1St/giphy.gif' alt='kiss'><p>My POV everytime I tuck you in and go home </p>",
+      "<img class='last-gif' src='https://media.giphy.com/media/Fu3OjBQiCs3s0ZuLY3/giphy.gif' alt='engagement ring'><p>I love every version of you :)</p><p2>Will you be my Valentine?🌸</p2>"
+    ];
+ 
+    const board = document.getElementById("board");
+    const messageBox = document.getElementById("message");
+ 
+    let currentRow = 0;
+    let currentCol = 0;
+    let isGameOver = false;
+ 
+    // Build empty board
+    for (let i = 0; i < 5; i++) {
+      const row = document.createElement("div");
+      row.className = "row";
+ 
+      for (let j = 0; j < 5; j++) {
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        row.appendChild(tile);
+      }
+ 
+      board.appendChild(row);
+    }
+ 
+    document.addEventListener("keydown", handleKey);
+ 
+    function handleKey(e) {
+      if (isGameOver) return;
+ 
+      const row = board.children[currentRow];
+ 
+      // LETTERS A–Z
+      if (e.key.match(/^[a-zA-Z]$/)) {
+        if (currentCol < 5) {
+          row.children[currentCol].textContent = e.key.toUpperCase();
+          currentCol++;
+        }
+      }
+ 
+      // BACKSPACE
+      if (e.key === "Backspace") {
+        if (currentCol > 0) {
+          currentCol--;
+          row.children[currentCol].textContent = "";
+        }
+      }
+ 
+      // ENTER
+      if (e.key === "Enter") {
+        if (currentCol === 5) {
+          lockRow();
+        }
+      }
+    }
+ 
+    function lockRow() {
+      const row = board.children[currentRow];
+      const targetWord = words[currentRow];
+      const typedWord = getTypedWord(row);
+ 
+      // Check for correct, present, or absent letters
+      for (let i = 0; i < 5; i++) {
+        const tile = row.children[i];
+        const letter = typedWord[i];
+ 
+        if (letter === targetWord[i]) {
+          tile.classList.add("correct");
+        } else if (targetWord.includes(letter)) {
+          tile.classList.add("present");
+        } else {
+          tile.classList.add("absent");
+        }
+      }
+ 
+      // Display the corresponding message and GIF
+      messageBox.innerHTML = messages[currentRow]; // Using innerHTML to include GIFs and text
+ 
+      currentRow++;
+      currentCol = 0;
+    }
+ 
+    function getTypedWord(row) {
+      let word = "";
+      for (let i = 0; i < 5; i++) {
+        word += row.children[i].textContent;
+      }
+      return word;
+    }
+ 
+    function resetGame() {
+      // Logic to reset the game
+      console.log("Game has been reset. Starting a new game...");
+      currentRow = 0;
+      currentCol = 0;
+      isGameOver = false;
+      messageBox.innerHTML = ""; // Clear the message box
+      // Add any additional reset logic you need, like clearing the board.
+    }
+ 
+    function endGame() {
+      // Logic to end the game
+      console.log("Game over. Thanks for playing!");
+      // You can add any final end-game actions or messages here.
+    }
+  </script>
+ 
+</body>
+</html>
+ 
